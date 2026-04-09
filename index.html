@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>古建千秋：1911年前中华营造图谱 | 空间·时序·聚类</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-    <!-- 注意：已删除阿里云 geo.datav.aliyun.com 的 script 引用 -->
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -345,8 +344,10 @@
                 else [pieChart, barChart, mapChart, radarChart, sankeyChart].forEach(c => c && c.resize());
             }
             if(pageId === 'page-relation') {
+                // 确保图表已初始化，并强制自适应放大后的容器
                 if(!spatialRadar) initRelationCharts();
                 resizeRelationCharts();
+                // 额外保证热力图容器高度生效
                 const heatmapDiv = document.getElementById('cooccur-heatmap');
                 if(heatmapDiv && heatMapChart) heatMapChart.resize();
             }
@@ -357,7 +358,7 @@
         }, 120);
     }
 
-    // 第二页：大屏初始化（使用 ECharts 内置地图注册方式，无外部 fetch）
+    // 第二页：大屏初始化
     function initDashboard() {
         let bridgeCount = 0, govCount = 0, houseCount = 0, palaceCount = 0;
         buildingData.forEach(item => {
@@ -377,37 +378,15 @@
         pieChart.setOption({ backgroundColor: "transparent", tooltip: { trigger: 'item', formatter: '{b}: {c}座 ({d}%)' }, legend: { show: true, bottom: '2%', orient: 'horizontal' }, series: [{ type: 'pie', radius: ['45%', '85%'], center: ['50%', '40%'], data: [ { name: '战乱时期', value: 35, itemStyle: { color: '#8A92A5' } }, { name: '盛世时期', value: 282, itemStyle: { color: '#FFF5D6' } } ], label: { show: true, position: 'inside', formatter: '{b}: {d}%' } }] });
         barChart = echarts.init(document.getElementById('bar-chart'));
         barChart.setOption({ backgroundColor: "transparent", tooltip: { trigger: 'axis' }, grid: { containLabel: true, left: '8%', right: '5%', top: 15, bottom: 10 }, xAxis: { type: 'category', data: ['华北', '东北', '华东', '西南', '西北', '华中', '华南', '其他'], axisLabel: { rotate: 20, fontSize: 8 } }, yAxis: { type: 'value', name: '数量' }, series: [{ type: 'bar', data: [105, 50, 48, 36, 33, 30, 22, 10], itemStyle: { color: '#D4A660', borderRadius: [4,4,0,0] }, label: { show: true, position: 'top', fontSize: 8 }, barWidth: '57%' }] });
-        
-        // 地图：使用 ECharts 内置的 'china' 地图（需要引入 china.js，但这里我们不用外部依赖，改用简单散点图 + 背景底图）
-        // 更稳妥的方式：展示一个基于 geojson 的 map，但由于没有外部数据，我们改为只显示散点图 + 热力图，不使用地图底图。
-        // 但为了符合原有设计，我们用一个简单方案：注册一个空白地图，只用散点和热力。
-        // 实际更好的做法：使用 ECharts 的 'china' 需要额外脚本，我们不增加额外请求，直接做坐标系为 'geo' 的散点图（需要 geoJson）
-        // 为了彻底避免 403，我们改用 ECharts 的 'candlestick' 风格？不，直接用百度/高德？不，保持原样但换成不依赖外部的模拟。
-        // 最终决定：取消地图底图，只显示热力图和散点（用户可接受，因为核心是分布密度）
-        // 但为了体验，我们可以使用一个简单的“中国轮廓” geoJson 内嵌？数据太大。所以简化：用笛卡尔坐标系散点图代替，并说明。
-        // 为保持原有交互，我们改用 ECharts 的 'scatter' + 'heatmap' 在笛卡尔坐标系（经度-纬度）上展示，背景加一张地图图片。
-        // 简单处理：去掉地图底图，只用带经纬度坐标的散点图（可缩放平移）。
         mapChart = echarts.init(document.getElementById('map-chart'));
-        const heatData = buildingData.map(b => [b.lon, b.lat, 5]);
-        const scatterData = buildingData.map(b => [b.lon, b.lat, b.type==='桥'?1:(b.type==='皇宫'?2:(b.type==='官府'?3:4))]);
-        mapChart.setOption({
-            backgroundColor: "#F5EFE6",
-            title: { text: '古建筑分布（经纬度散点+热力）', left: 'center', top: 5, textStyle: { fontSize: 12, color: '#3E2723' } },
-            tooltip: { trigger: 'axis', formatter: function(params) { return params.value ? `经度:${params.value[0].toFixed(2)}<br/>纬度:${params.value[1].toFixed(2)}` : ''; } },
-            xAxis: { name: '经度', min: 70, max: 135, gridIndex: 0 },
-            yAxis: { name: '纬度', min: 15, max: 55, gridIndex: 0 },
-            grid: { containLabel: false, left: '10%', right: '8%', top: '15%', bottom: '10%' },
-            visualMap: [
-                { type: 'continuous', min: 0, max: 10, inRange: { color: ['#50a3ba','#eac763','#d94e5d'] }, calculable: true, left: '5%', bottom: '5%', seriesIndex: 0 },
-                { type: 'piecewise', min: 0, max: 100, seriesIndex: 1, orient: 'horizontal', left: 'center', bottom: '0%', pieces: [{ value: 1, label: '桥', color: '#FFFFFF' },{ value: 2, label: '皇宫', color: '#D4A017' },{ value: 3, label: '官府', color: '#40C4FF' },{ value: 4, label: '民居', color: '#007947' }] }
-            ],
-            series: [
-                { name: '建筑热力', type: 'heatmap', data: heatData, coordinateSystem: 'cartesian2d', pointSize: 8, blurSize: 12 },
-                { name: '建筑散点', type: 'scatter', data: scatterData, symbolSize: 6, coordinateSystem: 'cartesian2d', itemStyle: { color: function(param) { const val = param.data[2]; if(val===1) return '#FFFFFF'; if(val===2) return '#D4A017'; if(val===3) return '#40C4FF'; return '#007947'; } } }
-            ]
+        fetch('https://cdn.jsdelivr.net/npm/china-geojson@1.0.0/100000_full.json').then(res => res.json()).then(chinaGeoJson => {
+            echarts.registerMap('china', chinaGeoJson);
+            const heatData = buildingData.map(b => [b.lon, b.lat, 5]);
+            const scatterData = buildingData.map(b => [b.lon, b.lat, b.type==='桥'?1:(b.type==='皇宫'?2:(b.type==='官府'?3:4))]);
+            mapChart.setOption({ backgroundColor: "#F5EFE6", tooltip: { trigger: 'item', formatter: p => p.name }, legend: { data: ['建筑热力分布', '建筑散点分布'], selected: { '建筑热力分布': true, '建筑散点分布': false }, top: 65 }, visualMap: [ { type: 'continuous', min: 0, max: 10, inRange: { color: ['#50a3ba','#eac763','#d94e5d'] }, calculable: true, left: '10%', bottom: '15%', seriesIndex: 0 }, { type: 'piecewise', min: 0, max: 100, seriesIndex: 1, orient: 'horizontal', left: 'center', bottom: '3%', pieces: [{ value: 1, label: '桥', color: '#FFFFFF' },{ value: 2, label: '皇宫', color: '#D4A017' },{ value: 3, label: '官府', color: '#40C4FF' },{ value: 4, label: '民居', color: '#007947' }] } ], geo: { map: 'china', roam: true, itemStyle: { borderColor: "#C82C28", borderWidth: 1.5, areaColor: "#F3D782" } }, series: [ { type: 'heatmap', name: '建筑热力分布', coordinateSystem: 'geo', data: heatData }, { type: 'scatter', name: '建筑散点分布', coordinateSystem: 'geo', symbolSize: 6, data: scatterData } ] });
         });
         radarChart = echarts.init(document.getElementById('radar-chart'));
-        radarChart.setOption({ backgroundColor: "#F5EFE6", tooltip: { trigger: 'item' }, legend: { data: ['桥', '皇宫', '官府', '民居'], bottom: '2%' }, radar: { indicator: [{ name: '水系依附度', max: 1 },{ name: '分布离散度', max: 1 },{ name: '空间环境跨度', max: 1 }], splitArea: { areaStyle: { color: ['rgba(243,215,130,0.12)','rgba(245,239,230,0.6)'] } } }, series: [{ type: 'radar', data: [{ value: [1.0, 0.0, 0.0815], name: '桥' }, { value: [0.0437, 0.6033, 1.0], name: '皇宫' }, { value: [0.2434, 1.0, 0.6371], name: '官府' }, { value: [0.0, 0.6133, 0.0], name: '民居' }] }] });
+        radarChart.setOption({ backgroundColor: "#F5EFE6", tooltip: { trigger: 'item' }, legend: { data: ['桥', '皇宫', '官府', '民居'], bottom: '2%' }, radar: { indicator: [{ name: '水系依附度', max: 1 },{ name: '分布离散度', max: 1 },{ name: '空间环境跨度', max: 1 }], splitArea: { areaStyle: { color: ['rgba(243,215,130,0.12)','rgba(245,239,230,0.6)'] } } }, series: [{ type: 'radar', name: '桥', data: [{ value: [1.0, 0.0, 0.0815] }], itemStyle: { color: "#1661AB" } }, { type: 'radar', name: '皇宫', data: [{ value: [0.0437, 0.6033, 1.0] }], itemStyle: { color: "#D4A017" } }, { type: 'radar', name: '官府', data: [{ value: [0.2434, 1.0, 0.6371] }], itemStyle: { color: "#C82C28" } }, { type: 'radar', name: '民居', data: [{ value: [0.0, 0.6133, 0.0] }], itemStyle: { color: "#007947" } }] });
         sankeyChart = echarts.init(document.getElementById('sankey-chart'));
         sankeyChart.setOption({ tooltip: { trigger: 'item' }, series: [{ type: 'sankey', layout: 'none', data: [{ name: '皇宫' },{ name: '官府' },{ name: '民居' },{ name: '桥' }], links: [{ source: '桥', target: '民居', value: 7 }, { source: '皇宫', target: '官府', value: 8 }, { source: '桥', target: '官府', value: 2 }, { source: '官府', target: '民居', value: 5 }, { source: '皇宫', target: '民居', value: 5 }, { source: '皇宫', target: '桥', value: 2 }], nodeWidth: 20, nodeGap: 8, lineStyle: { color: 'source', curveness: 0.5 } }] });
     }
@@ -450,7 +429,7 @@
         elbowChart.setOption({ xAxis: { data: [2,3,4,5] }, yAxis: { name: '惯性值' }, series: [{ type: 'line', data: [165,98,82,71], markPoint: { data: [{ type: 'min', name: '最佳k=3' }] } }] });
         if(!outlierChart) outlierChart = echarts.init(document.getElementById('outlier-chart'));
         outlierChart.setOption({ xAxis: { name: 'PC1' }, yAxis: { name: 'PC2' }, series: [{ type: 'scatter', data: [[-1.2,0.9],[1.8,-0.6],[-0.4,1.3],[0.5,-1.2],[-1.7,0.3],[1.3,1.0],[-0.7,-0.7],[1.0,1.5]], symbolSize: 10, color: '#3B82F6' }, { type: 'scatter', data: [[2.8,2.1],[-2.5,2.5],[3.0,-1.8],[-2.2,-2.0]], symbolSize: 18, color: 'red', symbol: 'diamond' }] });
-        document.getElementById('cluster-stats').innerHTML = `<table style="width:100%"><tr><th>聚类</th><th>样本数</th><th>核心特征</th></tr><tr><td><span class="badge-cluster">政治核心区</span></td><td>38</td><td>皇宫/官府占比72%，近古都</td></tr><tr><td><span class="badge-cluster">经济活跃区</span></td><td>52</td><td>桥+民居占比81%，江南水网</td></tr><tr><td><span class="badge-cluster">边疆边缘区</span></td><td>24</td><td>偏远宫殿/土司遗址</td></tr></table><p>轮廓系数:0.45 | 异常值数量:8</p>`;
+        document.getElementById('cluster-stats').innerHTML = `<table><tr><th>聚类</th><th>样本数</th><th>核心特征</th></tr><tr><td><span class="badge-cluster">政治核心区</span></td><td>38</td><td>皇宫/官府占比72%，近古都</td></tr><tr><td><span class="badge-cluster">经济活跃区</span></td><td>52</td><td>桥+民居占比81%，江南水网</td></tr><tr><td><span class="badge-cluster">边疆边缘区</span></td><td>24</td><td>偏远宫殿/土司遗址</td></tr></table><p>轮廓系数:0.45 | 异常值数量:8</p>`;
         document.getElementById('cluster-interpret').innerHTML = `<strong>📐 聚类解读：</strong> 基于经纬度、建筑类型、政治中心距离等特征，K-Means(k=3)划分为政治核心区（黄）、经济活跃区（蓝）、边疆边缘区（绿）。异常点包括布达拉宫、古格王朝等，体现多元营造体系。`;
     }
 
