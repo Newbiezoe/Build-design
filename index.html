@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>古建千秋：1911年前中华营造图谱 | 空间·时序·聚类</title>
     <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    <script src="https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json" type="text/javascript"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -379,7 +380,7 @@
         barChart = echarts.init(document.getElementById('bar-chart'));
         barChart.setOption({ backgroundColor: "transparent", tooltip: { trigger: 'axis' }, grid: { containLabel: true, left: '8%', right: '5%', top: 15, bottom: 10 }, xAxis: { type: 'category', data: ['华北', '东北', '华东', '西南', '西北', '华中', '华南', '其他'], axisLabel: { rotate: 20, fontSize: 8 } }, yAxis: { type: 'value', name: '数量' }, series: [{ type: 'bar', data: [105, 50, 48, 36, 33, 30, 22, 10], itemStyle: { color: '#D4A660', borderRadius: [4,4,0,0] }, label: { show: true, position: 'top', fontSize: 8 }, barWidth: '57%' }] });
         mapChart = echarts.init(document.getElementById('map-chart'));
-        fetch('https://cdn.jsdelivr.net/npm/china-geojson@1.0.0/100000_full.json').then(res => res.json()).then(chinaGeoJson => {
+        fetch('https://raw.githubusercontent.com/d3js/d3-geo/main/test/data/china.json').then(res => res.json()).then(chinaGeoJson => {
             echarts.registerMap('china', chinaGeoJson);
             const heatData = buildingData.map(b => [b.lon, b.lat, 5]);
             const scatterData = buildingData.map(b => [b.lon, b.lat, b.type==='桥'?1:(b.type==='皇宫'?2:(b.type==='官府'?3:4))]);
